@@ -12,9 +12,9 @@ final class AsyncSequenceTests {
             continuation.finish()
         }
 
-        try await sequence.test { context in
-            context.emit("hello")
-            context.emit("world")
+        try await sequence.test {
+            emit("hello")
+            emit("world")
         }
     }
 
@@ -27,10 +27,10 @@ final class AsyncSequenceTests {
             continuation.finish()
         }
 
-        try await sequence.test { context in
-            context.emit(where: { $0 > 5 })
-            context.emit(where: { $0 % 20 == 0 })
-            context.emit(where: { $0 == 30 })
+        try await sequence.test {
+            emit(where: { $0 > 5 })
+            emit(where: { $0 % 20 == 0 })
+            emit(where: { $0 == 30 })
         }
     }
 
@@ -42,9 +42,9 @@ final class AsyncSequenceTests {
             continuation.finish()
         }
 
-        try await sequence.test { context in
-            context.emit("value1")
-            context.emit("value2")
+        try await sequence.test {
+            emit("value1")
+            emit("value2")
         }
     }
 
@@ -59,8 +59,8 @@ final class AsyncSequenceTests {
         }
 
         do {
-            try await sequence.test { context in
-                context.emit("hello")
+            try await sequence.test {
+                emit("hello")
             }
             #expect(Bool(false), "Expected test to throw an error")
         } catch TestError.unexpectedElement(let element) {
@@ -78,9 +78,9 @@ final class AsyncSequenceTests {
         }
 
         do {
-            try await sequence.test { context in
-                context.emit("hello")
-                context.emit("world")
+            try await sequence.test {
+                emit("hello")
+                emit("world")
             }
             #expect(Bool(false), "Expected test to throw an error")
         } catch TestError.insufficientElements(let expected, let actual) {
@@ -100,9 +100,9 @@ final class AsyncSequenceTests {
         }
 
         do {
-            try await sequence.test { context in
-                context.emit("hello")
-                context.emit("world")
+            try await sequence.test {
+                emit("hello")
+                emit("world")
             }
             #expect(Bool(false), "Expected test to throw an error")
         } catch TestError.expectationMismatch(let expected, let actual, let index) {
@@ -121,100 +121,13 @@ final class AsyncSequenceTests {
         }
 
         do {
-            try await sequence.test { context in
-                context.emit("hello")
+            try await sequence.test {
+                emit("hello")
             }
             #expect(Bool(false), "Expected test to throw an error")
         } catch TestError.insufficientElements(let expected, let actual) {
             #expect(expected == 1)
             #expect(actual == 0)
-        } catch {
-            #expect(Bool(false), "Unexpected error type: \(error)")
-        }
-    }
-
-    // MARK: - Result Builder Tests
-
-    @Test("Test basic string emits with result builder")
-    func testBasicStringEmitsWithResultBuilder() async throws {
-        let sequence = AsyncStream<String> { continuation in
-            continuation.yield("hello")
-            continuation.yield("world")
-            continuation.finish()
-        }
-
-        try await sequence.test {
-            emit("hello")
-            emit("world")
-        }
-    }
-
-    @Test("Test emits with predicate matching using result builder")
-    func testPredicateMatchingWithResultBuilder() async throws {
-        let sequence = AsyncStream<Int> { continuation in
-            continuation.yield(10)
-            continuation.yield(20)
-            continuation.yield(30)
-            continuation.finish()
-        }
-
-        try await sequence.test {
-            emit(where: { $0 > 5 })
-            emit(where: { $0 % 20 == 0 })
-            emit(where: { $0 == 30 })
-        }
-    }
-
-    @Test("Test AsyncThrowingStream with result builder")
-    func testAsyncThrowingStreamWithResultBuilder() async throws {
-        let sequence = AsyncThrowingStream<String, Error> { continuation in
-            continuation.yield("value1")
-            continuation.yield("value2")
-            continuation.finish()
-        }
-
-        try await sequence.test {
-            emit("value1")
-            emit("value2")
-        }
-    }
-
-    @Test("Test result builder error handling - unexpected element")
-    func testResultBuilderUnexpectedElement() async throws {
-        let sequence = AsyncStream<String> { continuation in
-            continuation.yield("hello")
-            continuation.yield("unexpected")
-            continuation.finish()
-        }
-
-        do {
-            try await sequence.test {
-                emit("hello")
-            }
-            #expect(Bool(false), "Expected test to throw an error")
-        } catch TestError.unexpectedElement(let element) {
-            #expect(element == "unexpected")
-        } catch {
-            #expect(Bool(false), "Unexpected error type: \(error)")
-        }
-    }
-
-    @Test("Test result builder error handling - insufficient elements")
-    func testResultBuilderInsufficientElements() async throws {
-        let sequence = AsyncStream<String> { continuation in
-            continuation.yield("hello")
-            continuation.finish()
-        }
-
-        do {
-            try await sequence.test {
-                emit("hello")
-                emit("world")
-            }
-            #expect(Bool(false), "Expected test to throw an error")
-        } catch TestError.insufficientElements(let expected, let actual) {
-            #expect(expected == 2)
-            #expect(actual == 1)
         } catch {
             #expect(Bool(false), "Unexpected error type: \(error)")
         }

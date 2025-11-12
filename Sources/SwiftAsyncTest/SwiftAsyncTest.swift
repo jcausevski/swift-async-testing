@@ -31,14 +31,6 @@ public struct EmitExpectationBuilder<Element> {
 }
 
 extension AsyncSequenceTestProtocol where Self: AsyncSequence {
-    /// Creates a test context for this async sequence.
-    /// - Parameter testBlock: A closure that contains the test expectations using the DSL.
-    public func test(_ testBlock: (AsyncSequenceTestContext<Element>) async throws -> Void) async throws {
-        let context = AsyncSequenceTestContext<Element>()
-        try await testBlock(context)
-        try await context.validate(against: self)
-    }
-
     /// Creates a test for this async sequence using result builder syntax.
     /// - Parameter expectations: A result builder closure that defines the expected emissions.
     public func test(@EmitExpectationBuilder<Element> _ expectations: () -> [EmitExpectation]) async throws {
@@ -51,24 +43,6 @@ extension AsyncSequenceTestProtocol where Self: AsyncSequence {
 /// A test context that captures expectations for async sequence testing.
 public final class AsyncSequenceTestContext<Element> {
     internal var expectations: [any EmitExpectation] = []
-
-    /// Adds an expectation that the async sequence will emit the specified value.
-    /// - Parameter value: The expected value to be emitted.
-    public func emit(_ value: Element) {
-        expectations.append(ValueExpectation(value: value))
-    }
-
-    /// Adds an expectation that the async sequence will emit a value matching the predicate.
-    /// - Parameter predicate: A closure that takes an element and returns whether it matches.
-    public func emit(where predicate: @escaping @Sendable (Element) -> Bool) {
-        expectations.append(PredicateExpectation(predicate: predicate))
-    }
-
-    /// Adds an expectation that the async sequence will emit a value that equals the specified value using Equatable.
-    /// - Parameter value: The expected value to be emitted.
-    public func emit(_ value: Element) where Element: Equatable {
-        expectations.append(EquatableValueExpectation(value: value))
-    }
 
     internal func validate<S: AsyncSequence>(against sequence: S) async throws where S.Element == Element {
         var iterator = sequence.makeAsyncIterator()
@@ -204,14 +178,6 @@ public enum TestError: Error, CustomStringConvertible {
 // MARK: - AsyncSequence Extension
 
 extension AsyncSequence {
-    /// Creates a test context for this async sequence.
-    /// - Parameter testBlock: A closure that contains the test expectations using the DSL.
-    public func test(_ testBlock: (AsyncSequenceTestContext<Element>) async throws -> Void) async throws {
-        let context = AsyncSequenceTestContext<Element>()
-        try await testBlock(context)
-        try await context.validate(against: self)
-    }
-
     /// Creates a test for this async sequence using result builder syntax.
     /// - Parameter expectations: A result builder closure that defines the expected emissions.
     public func test(@EmitExpectationBuilder<Element> _ expectations: () -> [EmitExpectation]) async throws {
