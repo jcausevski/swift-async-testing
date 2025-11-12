@@ -1,4 +1,5 @@
 import Foundation
+import Testing
 
 /// A result builder for constructing async sequence test expectations.
 @resultBuilder
@@ -26,35 +27,29 @@ public struct AsyncSequenceExpectationBuilder<Element> {
 
 // MARK: - Result Builder Functions
 
-/// Creates an expectation that the async sequence will emit the specified value.
-/// - Parameter value: The expected value to be emitted.
-public func emit<Element>(_ value: Element) -> AsyncSequenceExpectation {
-    ValueExpectation(value: value)
-}
-
 /// Creates an expectation that the async sequence will emit a value matching the predicate.
 /// - Parameter predicate: A closure that takes an element and returns whether it matches.
-public func emit<Element>(where predicate: @escaping @Sendable (Element) -> Bool) -> AsyncSequenceExpectation {
-    PredicateExpectation(predicate: predicate)
+public func emit<Element>(where predicate: @escaping @Sendable (Element) -> Bool, sourceLocation: SourceLocation = #_sourceLocation) -> AsyncSequenceExpectation {
+    PredicateExpectation(predicate: predicate, sourceLocation: sourceLocation)
 }
 
 /// Creates an expectation that the async sequence will emit a value that equals the specified value using Equatable.
 /// - Parameter value: The expected value to be emitted.
-public func emit<E: Equatable>(_ value: E) -> AsyncSequenceExpectation {
-    EquatableValueExpectation(value: value)
+public func emit<E: Equatable>(_ value: E, sourceLocation: SourceLocation = #_sourceLocation) -> AsyncSequenceExpectation {
+    EquatableValueExpectation(value: value, sourceLocation: sourceLocation)
 }
 
 // MARK: - Skip Functions
 
 /// Creates an expectation that skips one element from the async sequence.
 /// This allows you to ignore an element and continue matching subsequent elements.
-public func skip() -> AsyncSequenceExpectation {
-    SkipExpectation()
+public func skip(sourceLocation: SourceLocation = #_sourceLocation) -> AsyncSequenceExpectation {
+    SkipExpectation(sourceLocation: sourceLocation)
 }
 
 /// Creates an expectation that skips a specified number of elements from the async sequence.
 /// This allows you to ignore multiple elements and continue matching subsequent elements.
 /// - Parameter count: The number of elements to skip. Must be greater than 0.
-public func skip(_ count: Int) -> AsyncSequenceExpectation {
-    SkipCountExpectation(count: count)
+public func skip(_ count: Int, sourceLocation: SourceLocation = #_sourceLocation) -> AsyncSequenceExpectation {
+    SkipCountExpectation(count: count, sourceLocation: sourceLocation)
 }

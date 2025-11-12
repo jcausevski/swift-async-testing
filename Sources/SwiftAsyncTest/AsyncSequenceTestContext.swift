@@ -1,4 +1,5 @@
 import Foundation
+import Testing
 
 /// A test context that captures expectations for async sequence testing.
 public final class AsyncSequenceTestContext<Element> {
@@ -10,7 +11,9 @@ public final class AsyncSequenceTestContext<Element> {
 
         while let element = try await iterator.next() {
             if expectationIndex >= expectations.count {
-                throw AsyncTestError.unexpectedElement(String(describing: element))
+                // Use the source location of the last expectation processed (or a default if none)
+                let sourceLocation = expectations.isEmpty ? #_sourceLocation : expectations.last!.sourceLocation
+                throw AsyncTestError.unexpectedElement(element: String(describing: element), at: expectationIndex, sourceLocation: sourceLocation)
             }
 
             let expectation = expectations[expectationIndex]
@@ -19,7 +22,7 @@ public final class AsyncSequenceTestContext<Element> {
             if let skipExpectation = expectation as? SkipCountExpectation {
                 // Validate skip count before processing
                 guard skipExpectation.count > 0 else {
-                    throw AsyncTestError.invalidSkipCount(count: skipExpectation.count)
+                    throw AsyncTestError.invalidSkipCount(count: skipExpectation.count, sourceLocation: skipExpectation.sourceLocation)
                 }
 
                 // Skip multiple elements for SkipCountExpectation
@@ -30,9 +33,11 @@ public final class AsyncSequenceTestContext<Element> {
                 // Then consume additional elements if needed
                 while elementsSkipped < skipExpectation.count {
                     guard let _ = try await iterator.next() else {
-                        throw AsyncTestError.insufficientElements(
-                            expected: expectations.count,
-                            actual: expectationIndex
+                        throw AsyncTestError.insufficientElementsForSkip(
+                            skipCount: skipExpectation.count,
+                            elementsSkipped: elementsSkipped,
+                            expectationIndex: expectationIndex,
+                            totalExpectations: expectations.count
                         )
                     }
                     elementsSkipped += 1
@@ -49,15 +54,21 @@ public final class AsyncSequenceTestContext<Element> {
                 throw AsyncTestError.expectationMismatch(
                     expected: expectation.description,
                     actual: String(describing: element),
-                    at: expectationIndex
+                    at: expectationIndex,
+                    sourceLocation: expectation.sourceLocation
                 )
             }
         }
 
         if expectationIndex < expectations.count {
+            let unprocessedExpectations = Array(expectations.dropFirst(expectationIndex)).map { $0.description }
+            // Get the source location of the first unprocessed expectation for better error reporting
+            let sourceLocation = expectations[expectationIndex].sourceLocation
             throw AsyncTestError.insufficientElements(
                 expected: expectations.count,
-                actual: expectationIndex
+                actual: expectationIndex,
+                unprocessedExpectations: unprocessedExpectations,
+                sourceLocation: sourceLocation
             )
         }
     }

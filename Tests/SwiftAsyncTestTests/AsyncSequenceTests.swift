@@ -4,15 +4,15 @@ import Foundation
 
 final class AsyncSequenceTests {
 
-    @Test("Test basic string emits")
-    func testBasicStringEmits() async throws {
+    @Test("Test equatable emits")
+    func testEquatableEmits() async throws {
         let sequence = AsyncStream<String> { continuation in
             continuation.yield("hello")
             continuation.yield("world")
             continuation.finish()
         }
 
-        try await sequence.test {
+        await sequence.test {
             emit("hello")
             emit("world")
         }
@@ -27,24 +27,10 @@ final class AsyncSequenceTests {
             continuation.finish()
         }
 
-        try await sequence.test {
+        await sequence.test {
             emit(where: { $0 > 5 })
             emit(where: { $0 % 20 == 0 })
             emit(where: { $0 == 30 })
-        }
-    }
-
-    @Test("Test AsyncThrowingStream")
-    func testAsyncThrowingStream() async throws {
-        let sequence = AsyncThrowingStream<String, Error> { continuation in
-            continuation.yield("value1")
-            continuation.yield("value2")
-            continuation.finish()
-        }
-
-        try await sequence.test {
-            emit("value1")
-            emit("value2")
         }
     }
 
@@ -59,12 +45,13 @@ final class AsyncSequenceTests {
         }
 
         do {
-            try await sequence.test {
+            try await sequence.testThrowing {
                 emit("hello")
             }
             #expect(Bool(false), "Expected test to throw an error")
-        } catch AsyncTestError.unexpectedElement(let element) {
+        } catch AsyncTestError.unexpectedElement(let element, let at, _) {
             #expect(element == "unexpected")
+            #expect(at == 1)
         } catch {
             #expect(Bool(false), "Unexpected error type: \(error)")
         }
@@ -78,14 +65,16 @@ final class AsyncSequenceTests {
         }
 
         do {
-            try await sequence.test {
+            try await sequence.testThrowing {
                 emit("hello")
                 emit("world")
             }
             #expect(Bool(false), "Expected test to throw an error")
-        } catch AsyncTestError.insufficientElements(let expected, let actual) {
+        } catch AsyncTestError.insufficientElements(let expected, let actual, let unprocessedExpectations, _) {
             #expect(expected == 2)
             #expect(actual == 1)
+            #expect(unprocessedExpectations.count == 1)
+            #expect(unprocessedExpectations.first == "world")
         } catch {
             #expect(Bool(false), "Unexpected error type: \(error)")
         }
@@ -100,12 +89,12 @@ final class AsyncSequenceTests {
         }
 
         do {
-            try await sequence.test {
+            try await sequence.testThrowing {
                 emit("hello")
                 emit("world")
             }
             #expect(Bool(false), "Expected test to throw an error")
-        } catch AsyncTestError.expectationMismatch(let expected, let actual, let index) {
+        } catch AsyncTestError.expectationMismatch(let expected, let actual, let index, _) {
             #expect(index == 1)
             #expect(expected == "world")
             #expect(actual == "wrong")
@@ -121,13 +110,15 @@ final class AsyncSequenceTests {
         }
 
         do {
-            try await sequence.test {
+            try await sequence.testThrowing {
                 emit("hello")
             }
             #expect(Bool(false), "Expected test to throw an error")
-        } catch AsyncTestError.insufficientElements(let expected, let actual) {
+        } catch AsyncTestError.insufficientElements(let expected, let actual, let unprocessedExpectations, _) {
             #expect(expected == 1)
             #expect(actual == 0)
+            #expect(unprocessedExpectations.count == 1)
+            #expect(unprocessedExpectations.first == "hello")
         } catch {
             #expect(Bool(false), "Unexpected error type: \(error)")
         }
@@ -144,7 +135,7 @@ final class AsyncSequenceTests {
             continuation.finish()
         }
 
-        try await sequence.test {
+        await sequence.test {
             emit("hello")
             skip()
             emit("world")
@@ -162,7 +153,7 @@ final class AsyncSequenceTests {
             continuation.finish()
         }
 
-        try await sequence.test {
+        await sequence.test {
             emit(1)
             skip(2) // Skip elements 2 and 3
             emit(4)
@@ -182,7 +173,7 @@ final class AsyncSequenceTests {
             continuation.finish()
         }
 
-        try await sequence.test {
+        await sequence.test {
             emit("keep1")
             skip()
             emit("keep2")
@@ -202,14 +193,16 @@ final class AsyncSequenceTests {
         }
 
         do {
-            try await sequence.test {
+            try await sequence.testThrowing {
                 emit("hello")
                 skip(2) // Tries to skip 2 elements but only 1 remains
             }
             #expect(Bool(false), "Expected test to throw an error")
-        } catch AsyncTestError.insufficientElements(let expected, let actual) {
-            #expect(expected == 2) // emit + skip = 2 expectations
-            #expect(actual == 1) // only processed emit before failing
+        } catch AsyncTestError.insufficientElementsForSkip(let skipCount, let elementsSkipped, let expectationIndex, let totalExpectations) {
+            #expect(skipCount == 2)
+            #expect(elementsSkipped == 1)
+            #expect(expectationIndex == 1)
+            #expect(totalExpectations == 2)
         } catch {
             #expect(Bool(false), "Unexpected error type: \(error)")
         }
@@ -224,12 +217,12 @@ final class AsyncSequenceTests {
         }
 
         do {
-            try await sequence.test {
+            try await sequence.testThrowing {
                 emit("hello")
                 skip(-5) // Should throw an error for negative count
             }
             #expect(Bool(false), "Expected test to throw an error for negative skip count")
-        } catch AsyncTestError.invalidSkipCount(let count) {
+        } catch AsyncTestError.invalidSkipCount(let count, _) {
             #expect(count == -5, "Expected error to contain the invalid skip count")
         }
     }
@@ -243,12 +236,12 @@ final class AsyncSequenceTests {
         }
 
         do {
-            try await sequence.test {
+            try await sequence.testThrowing {
                 emit("hello")
                 skip(0) // Should throw an error for zero count
             }
             #expect(Bool(false), "Expected test to throw an error for zero skip count")
-        } catch AsyncTestError.invalidSkipCount(let count) {
+        } catch AsyncTestError.invalidSkipCount(let count, _) {
             #expect(count == 0, "Expected error to contain the invalid skip count")
         }
     }
