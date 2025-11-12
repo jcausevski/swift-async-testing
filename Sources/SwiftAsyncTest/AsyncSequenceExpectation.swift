@@ -2,15 +2,15 @@ import Foundation
 
 // MARK: - Expectation Protocols
 
-/// A protocol for expectations about emitted values.
-public protocol EmitExpectation {
+/// A protocol for expectations about async sequence elements.
+public protocol AsyncSequenceExpectation {
     func matches(_ element: Any) throws -> Bool
     var description: String { get }
 }
 
 // MARK: - Concrete Expectation Types
 
-public struct ValueExpectation<Element>: EmitExpectation {
+public struct ValueExpectation<Element>: AsyncSequenceExpectation {
     public let value: Element
     public let description: String
 
@@ -27,7 +27,7 @@ public struct ValueExpectation<Element>: EmitExpectation {
     }
 }
 
-public struct EquatableValueExpectation<E: Equatable>: EmitExpectation {
+public struct EquatableValueExpectation<E: Equatable>: AsyncSequenceExpectation {
     public let value: E
     public let description: String
 
@@ -44,7 +44,7 @@ public struct EquatableValueExpectation<E: Equatable>: EmitExpectation {
     }
 }
 
-public struct PredicateExpectation<Element>: EmitExpectation {
+public struct PredicateExpectation<Element>: AsyncSequenceExpectation {
     public let predicate: @Sendable (Element) -> Bool
     public let description: String
 
@@ -58,5 +58,36 @@ public struct PredicateExpectation<Element>: EmitExpectation {
             return false
         }
         return predicate(typedElement)
+    }
+}
+
+// MARK: - Skip Expectations
+
+/// An expectation that skips a single element from the async sequence.
+public struct SkipExpectation: AsyncSequenceExpectation {
+    public let description: String = "skip element"
+
+    public init() {}
+
+    public func matches(_ element: Any) throws -> Bool {
+        // Skip expectations always match any element since they're designed to skip
+        return true
+    }
+}
+
+/// An expectation that skips a specified number of elements from the async sequence.
+public struct SkipCountExpectation: AsyncSequenceExpectation {
+    public let count: Int
+    public var description: String {
+        "skip \(count) element\(count == 1 ? "" : "s")"
+    }
+
+    init(count: Int) {
+        self.count = max(1, count) // Ensure at least 1
+    }
+
+    public func matches(_ element: Any) throws -> Bool {
+        // Skip expectations always match any element since they're designed to skip
+        return true
     }
 }
