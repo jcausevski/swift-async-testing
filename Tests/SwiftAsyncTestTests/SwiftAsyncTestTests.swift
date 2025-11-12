@@ -63,7 +63,7 @@ final class AsyncSequenceTests {
                 emit("hello")
             }
             #expect(Bool(false), "Expected test to throw an error")
-        } catch TestError.unexpectedElement(let element) {
+        } catch AsyncTestError.unexpectedElement(let element) {
             #expect(element == "unexpected")
         } catch {
             #expect(Bool(false), "Unexpected error type: \(error)")
@@ -83,7 +83,7 @@ final class AsyncSequenceTests {
                 emit("world")
             }
             #expect(Bool(false), "Expected test to throw an error")
-        } catch TestError.insufficientElements(let expected, let actual) {
+        } catch AsyncTestError.insufficientElements(let expected, let actual) {
             #expect(expected == 2)
             #expect(actual == 1)
         } catch {
@@ -105,7 +105,7 @@ final class AsyncSequenceTests {
                 emit("world")
             }
             #expect(Bool(false), "Expected test to throw an error")
-        } catch TestError.expectationMismatch(let expected, let actual, let index) {
+        } catch AsyncTestError.expectationMismatch(let expected, let actual, let index) {
             #expect(index == 1)
             #expect(expected == "world")
             #expect(actual == "wrong")
@@ -125,7 +125,7 @@ final class AsyncSequenceTests {
                 emit("hello")
             }
             #expect(Bool(false), "Expected test to throw an error")
-        } catch TestError.insufficientElements(let expected, let actual) {
+        } catch AsyncTestError.insufficientElements(let expected, let actual) {
             #expect(expected == 1)
             #expect(actual == 0)
         } catch {
