@@ -83,10 +83,14 @@ public struct SkipCountExpectation: AsyncSequenceExpectation {
     }
 
     init(count: Int) {
-        self.count = max(1, count) // Ensure at least 1
+        self.count = count
     }
 
     public func matches(_ element: Any) throws -> Bool {
+        // Validate skip count before processing
+        guard count > 0 else {
+            throw AsyncTestError.invalidSkipCount(count: count)
+        }
         // Skip expectations always match any element since they're designed to skip
         return true
     }

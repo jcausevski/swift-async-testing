@@ -223,13 +223,18 @@ final class AsyncSequenceTests {
             continuation.finish()
         }
 
-        try await sequence.test {
-            emit("hello")
-            skip(-5) // Should be treated as skipping 1 element due to max(1, count)
+        do {
+            try await sequence.test {
+                emit("hello")
+                skip(-5) // Should throw an error for negative count
+            }
+            #expect(Bool(false), "Expected test to throw an error for negative skip count")
+        } catch AsyncTestError.invalidSkipCount(let count) {
+            #expect(count == -5, "Expected error to contain the invalid skip count")
         }
     }
 
-    @Test("Test skip zero elements (should skip 1)")
+    @Test("Test skip zero elements")
     func testSkipZeroElements() async throws {
         let sequence = AsyncStream<String> { continuation in
             continuation.yield("hello")
@@ -237,9 +242,14 @@ final class AsyncSequenceTests {
             continuation.finish()
         }
 
-        try await sequence.test {
-            emit("hello")
-            skip(0) // Should be treated as skipping 1 element due to max(1, count)
+        do {
+            try await sequence.test {
+                emit("hello")
+                skip(0) // Should throw an error for zero count
+            }
+            #expect(Bool(false), "Expected test to throw an error for zero skip count")
+        } catch AsyncTestError.invalidSkipCount(let count) {
+            #expect(count == 0, "Expected error to contain the invalid skip count")
         }
     }
 }

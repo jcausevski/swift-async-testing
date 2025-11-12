@@ -54,7 +54,7 @@ public func skip() -> AsyncSequenceExpectation {
 
 /// Creates an expectation that skips a specified number of elements from the async sequence.
 /// This allows you to ignore multiple elements and continue matching subsequent elements.
-/// - Parameter count: The number of elements to skip. Must be at least 1.
+/// - Parameter count: The number of elements to skip. Must be greater than 0.
 public func skip(_ count: Int) -> AsyncSequenceExpectation {
     SkipCountExpectation(count: count)
 }

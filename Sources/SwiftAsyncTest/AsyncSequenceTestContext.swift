@@ -17,6 +17,11 @@ public final class AsyncSequenceTestContext<Element> {
 
             // Handle skip expectations differently
             if let skipExpectation = expectation as? SkipCountExpectation {
+                // Validate skip count before processing
+                guard skipExpectation.count > 0 else {
+                    throw AsyncTestError.invalidSkipCount(count: skipExpectation.count)
+                }
+
                 // Skip multiple elements for SkipCountExpectation
                 var elementsSkipped = 0
                 // First, consume the current element

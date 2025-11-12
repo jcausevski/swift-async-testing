@@ -5,6 +5,7 @@ public enum AsyncTestError: Error, CustomStringConvertible {
     case unexpectedElement(String)
     case expectationMismatch(expected: String, actual: String, at: Int)
     case insufficientElements(expected: Int, actual: Int)
+    case invalidSkipCount(count: Int)
 
     public var description: String {
         switch self {
@@ -14,6 +15,8 @@ public enum AsyncTestError: Error, CustomStringConvertible {
             return "Expectation at index \(index) failed. Expected: \(expected), but got: \(actual)"
         case .insufficientElements(let expected, let actual):
             return "Insufficient elements. Expected \(expected), but got \(actual)"
+        case .invalidSkipCount(let count):
+            return "Invalid skip count: \(count). Skip count must be greater than 0."
         }
     }
 }
