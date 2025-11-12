@@ -6,6 +6,30 @@ public protocol AsyncSequenceTestProtocol {
     associatedtype Element
 }
 
+/// A result builder for constructing async sequence test expectations.
+@resultBuilder
+public struct EmitExpectationBuilder<Element> {
+    public static func buildBlock(_ components: EmitExpectation...) -> [EmitExpectation] {
+        components
+    }
+
+    public static func buildArray(_ components: [EmitExpectation]) -> [EmitExpectation] {
+        components
+    }
+
+    public static func buildOptional(_ component: EmitExpectation?) -> [EmitExpectation] {
+        component.map { [$0] } ?? []
+    }
+
+    public static func buildEither(first component: EmitExpectation) -> [EmitExpectation] {
+        [component]
+    }
+
+    public static func buildEither(second component: EmitExpectation) -> [EmitExpectation] {
+        [component]
+    }
+}
+
 extension AsyncSequenceTestProtocol where Self: AsyncSequence {
     /// Creates a test context for this async sequence.
     /// - Parameter testBlock: A closure that contains the test expectations using the DSL.
@@ -14,11 +38,19 @@ extension AsyncSequenceTestProtocol where Self: AsyncSequence {
         try await testBlock(context)
         try await context.validate(against: self)
     }
+
+    /// Creates a test for this async sequence using result builder syntax.
+    /// - Parameter expectations: A result builder closure that defines the expected emissions.
+    public func test(@EmitExpectationBuilder<Element> _ expectations: () -> [EmitExpectation]) async throws {
+        let context = AsyncSequenceTestContext<Element>()
+        context.expectations = expectations()
+        try await context.validate(against: self)
+    }
 }
 
 /// A test context that captures expectations for async sequence testing.
 public final class AsyncSequenceTestContext<Element> {
-    private var expectations: [any EmitExpectation] = []
+    internal var expectations: [any EmitExpectation] = []
 
     /// Adds an expectation that the async sequence will emit the specified value.
     /// - Parameter value: The expected value to be emitted.
@@ -66,6 +98,26 @@ public final class AsyncSequenceTestContext<Element> {
             )
         }
     }
+}
+
+// MARK: - Result Builder Functions
+
+/// Creates an expectation that the async sequence will emit the specified value.
+/// - Parameter value: The expected value to be emitted.
+public func emit<Element>(_ value: Element) -> EmitExpectation {
+    ValueExpectation(value: value)
+}
+
+/// Creates an expectation that the async sequence will emit a value matching the predicate.
+/// - Parameter predicate: A closure that takes an element and returns whether it matches.
+public func emit<Element>(where predicate: @escaping @Sendable (Element) -> Bool) -> EmitExpectation {
+    PredicateExpectation(predicate: predicate)
+}
+
+/// Creates an expectation that the async sequence will emit a value that equals the specified value using Equatable.
+/// - Parameter value: The expected value to be emitted.
+public func emit<E: Equatable>(_ value: E) -> EmitExpectation {
+    EquatableValueExpectation(value: value)
 }
 
 // MARK: - Expectation Protocols
@@ -157,6 +209,14 @@ extension AsyncSequence {
     public func test(_ testBlock: (AsyncSequenceTestContext<Element>) async throws -> Void) async throws {
         let context = AsyncSequenceTestContext<Element>()
         try await testBlock(context)
+        try await context.validate(against: self)
+    }
+
+    /// Creates a test for this async sequence using result builder syntax.
+    /// - Parameter expectations: A result builder closure that defines the expected emissions.
+    public func test(@EmitExpectationBuilder<Element> _ expectations: () -> [EmitExpectation]) async throws {
+        let context = AsyncSequenceTestContext<Element>()
+        context.expectations = expectations()
         try await context.validate(against: self)
     }
 }
