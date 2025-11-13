@@ -8,6 +8,8 @@ public enum AsyncTestError: Error, CustomStringConvertible {
     case insufficientElements(expected: Int, actual: Int, unprocessedExpectations: [String], sourceLocation: SourceLocation)
     case insufficientElementsForSkip(skipCount: Int, elementsSkipped: Int, expectationIndex: Int, totalExpectations: Int)
     case invalidSkipCount(count: Int, sourceLocation: SourceLocation)
+    case expectedErrorButSequenceSucceeded(expectedError: String, at: Int, sourceLocation: SourceLocation)
+    case errorExpectationMismatch(expectedError: String, actualError: String, at: Int, sourceLocation: SourceLocation)
 
     public var description: String {
         switch self {
@@ -21,6 +23,10 @@ public enum AsyncTestError: Error, CustomStringConvertible {
             return "Attempted to skip \(skipCount) elements, but only \(elementsSkipped) elements were available."
         case .invalidSkipCount(let count, _):
             return "Invalid skip count: \(count). Skip count must be greater than 0."
+        case .expectedErrorButSequenceSucceeded(let expectedError, _, _):
+            return "Expected an error (\(expectedError)) but sequence succeeded without throwing"
+        case .errorExpectationMismatch(let expectedError, let actualError, _, _):
+            return "Error expectation failed. Expected: \(expectedError), but got: \(actualError)"
         }
     }
 }

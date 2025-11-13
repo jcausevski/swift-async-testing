@@ -88,6 +88,33 @@ extension AsyncSequence {
                     """,
                     sourceLocation: sourceLocation
                 )
+
+            case .expectedErrorButSequenceSucceeded(let expectedError, let expectationIndex, let sourceLocation):
+                Issue.record(
+                    """
+                    Expected error at position \(expectationIndex), but sequence succeeded
+
+                    Expected: \(expectedError)
+
+                    This indicates that the async sequence finished without throwing an error when an error was expected.
+                    Verify that your async sequence should throw an error or remove the error expectation.
+                    """,
+                    sourceLocation: sourceLocation
+                )
+
+            case .errorExpectationMismatch(let expectedError, let actualError, let expectationIndex, let sourceLocation):
+                Issue.record(
+                    """
+                    Error expectation mismatch at index \(expectationIndex)
+
+                    Expected error: \(expectedError)
+                    Actual error: \(actualError)
+
+                    This indicates that the async sequence threw an error, but it doesn't match the expected error criteria.
+                    Check your error expectations to ensure they match the actual error behavior.
+                    """,
+                    sourceLocation: sourceLocation
+                )
             }
         } catch {
             Issue.record(

@@ -5,86 +5,123 @@ import Testing
 public final class AsyncSequenceTestContext<Element> {
     internal var expectations: [any AsyncSequenceExpectation] = []
 
-    internal func validate<S: AsyncSequence>(against sequence: S) async throws where S.Element == Element {
+    internal func validate<S: AsyncSequence>(against sequence: S) async throws
+    where S.Element == Element {
         var iterator = sequence.makeAsyncIterator()
         var expectationIndex = 0
 
-        while let element = try await iterator.next() {
-            if expectationIndex >= expectations.count {
-                // Use the source location of the last expectation processed (or a default if none)
-                let sourceLocation = expectations.isEmpty ? #_sourceLocation : expectations.last!.sourceLocation
-                throw AsyncTestError.unexpectedElement(
-                    element: String(describing: element),
-                    at: expectationIndex,
-                    sourceLocation: sourceLocation
-                )
-            }
+        while true {
+            do {
+                guard let element = try await iterator.next() else {
+                    if expectationIndex < expectations.count {
 
-            let expectation = expectations[expectationIndex]
-
-            // Handle skip expectations differently
-            if let skipExpectation = expectation as? SkipCountExpectation {
-                // Validate skip count before processing
-                guard skipExpectation.count > 0 else {
-                    throw AsyncTestError.invalidSkipCount(
-                        count: skipExpectation.count,
-                        sourceLocation: skipExpectation.sourceLocation
+                        for i in expectationIndex..<expectations.count {
+                            if expectations[i] is ErrorExpectation {
+                                throw AsyncTestError.expectedErrorButSequenceSucceeded(
+                                    expectedError: expectations[i].description,
+                                    at: i,
+                                    sourceLocation: expectations[i].sourceLocation
+                                )
+                            }
+                        }
+                    }
+                    break
+                }
+                if expectationIndex >= expectations.count {
+                    let sourceLocation =
+                        expectations.isEmpty ? #_sourceLocation : expectations.last!.sourceLocation
+                    throw AsyncTestError.unexpectedElement(
+                        element: String(describing: element),
+                        at: expectationIndex,
+                        sourceLocation: sourceLocation
                     )
                 }
 
-                // Skip multiple elements for SkipCountExpectation
-                var elementsSkipped = 0
-                // First, consume the current element
-                elementsSkipped += 1
+                let expectation = expectations[expectationIndex]
 
-                // Then consume additional elements if needed
-                while elementsSkipped < skipExpectation.count {
-                    guard let _ = try await iterator.next() else {
-                        throw AsyncTestError.insufficientElementsForSkip(
-                            skipCount: skipExpectation.count,
-                            elementsSkipped: elementsSkipped,
-                            expectationIndex: expectationIndex,
-                            totalExpectations: expectations.count
+                if expectation is ErrorExpectation {
+                    throw AsyncTestError.expectedErrorButSequenceSucceeded(
+                        expectedError: expectation.description,
+                        at: expectationIndex,
+                        sourceLocation: expectation.sourceLocation
+                    )
+                }
+
+                if let skipExpectation = expectation as? SkipCountExpectation {
+                    guard skipExpectation.count > 0 else {
+                        throw AsyncTestError.invalidSkipCount(
+                            count: skipExpectation.count,
+                            sourceLocation: skipExpectation.sourceLocation
                         )
                     }
-                    elementsSkipped += 1
-                }
 
-                expectationIndex += 1
-            } else if expectation is SkipExpectation {
-                // Skip single element for SkipExpectation
-                expectationIndex += 1
-            } else if expectation is SkipAllExpectation {
-                // Skip all remaining elements for SkipAllExpectation
-                // Consume all remaining elements from the iterator and finish
-                while let _ = try await iterator.next() {
-                    // Keep consuming until no more elements
+                    var elementsSkipped = 1
+                    while elementsSkipped < skipExpectation.count {
+                        guard (try await iterator.next()) != nil else {
+                            throw AsyncTestError.insufficientElementsForSkip(
+                                skipCount: skipExpectation.count,
+                                elementsSkipped: elementsSkipped,
+                                expectationIndex: expectationIndex,
+                                totalExpectations: expectations.count
+                            )
+                        }
+                        elementsSkipped += 1
+                    }
+
+                    expectationIndex += 1
+                } else if expectation is SkipExpectation {
+                    expectationIndex += 1
+                } else if expectation is SkipAllExpectation {
+                    while (try await iterator.next()) != nil {
+                        // Keep consuming until no more elements
+                    }
+                    expectationIndex += 1
+                    break
+                } else if try expectation.matches(element) {
+                    expectationIndex += 1
+                } else {
+                    throw AsyncTestError.expectationMismatch(
+                        expected: expectation.description,
+                        actual: String(describing: element),
+                        at: expectationIndex,
+                        sourceLocation: expectation.sourceLocation
+                    )
                 }
-                expectationIndex += 1
-                break // Exit the while loop since we've consumed all elements
-            } else if try expectation.matches(element) {
-                // Regular expectation matching
-                expectationIndex += 1
-            } else {
-                throw AsyncTestError.expectationMismatch(
-                    expected: expectation.description,
-                    actual: String(describing: element),
-                    at: expectationIndex,
-                    sourceLocation: expectation.sourceLocation
-                )
+            } catch let error as AsyncTestError {
+                throw error
+            } catch {
+                if expectationIndex < expectations.count {
+                    let expectation = expectations[expectationIndex]
+
+                    if let errorExpectation = expectation as? ErrorExpectation {
+                        if errorExpectation.matchesError(error) {
+                            return
+                        } else {
+                            throw AsyncTestError.errorExpectationMismatch(
+                                expectedError: expectation.description,
+                                actualError: String(describing: error),
+                                at: expectationIndex,
+                                sourceLocation: expectation.sourceLocation
+                            )
+                        }
+                    } else {
+                        throw error
+                    }
+                } else {
+                    throw error
+                }
             }
         }
 
         if expectationIndex < expectations.count {
             let unprocessedExpectations = Array(expectations.dropFirst(expectationIndex))
 
-            // Special case: if the only remaining expectation is skipAll, it's considered successful
-            if unprocessedExpectations.count == 1 && unprocessedExpectations.first is SkipAllExpectation {
-                // skipAll can succeed even when no elements remain
+            if unprocessedExpectations.count == 1
+                && unprocessedExpectations.first is SkipAllExpectation
+            {
                 return
             }
 
-            // Get the source location of the first unprocessed expectation for better error reporting
             let sourceLocation = expectations[expectationIndex].sourceLocation
             throw AsyncTestError.insufficientElements(
                 expected: expectations.count,

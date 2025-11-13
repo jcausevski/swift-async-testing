@@ -65,3 +65,31 @@ public func skip(_ count: Int, sourceLocation: SourceLocation = #_sourceLocation
 public func skipAll(sourceLocation: SourceLocation = #_sourceLocation) -> AsyncSequenceExpectation {
     SkipAllExpectation(sourceLocation: sourceLocation)
 }
+
+// MARK: - Error Functions
+
+/// Creates an expectation that the async sequence will throw any error.
+/// This expectation matches any error that is thrown by the sequence.
+public func expectError(sourceLocation: SourceLocation = #_sourceLocation) -> AsyncSequenceExpectation {
+    AnyErrorExpectation(sourceLocation: sourceLocation)
+}
+
+/// Creates an expectation that the async sequence will throw an error of the specified type.
+/// This expectation matches only errors of the specified type.
+/// - Parameter errorType: The expected error type.
+public func expectError<E: Error>(
+    _ errorType: E.Type,
+    sourceLocation: SourceLocation = #_sourceLocation
+) -> AsyncSequenceExpectation {
+    ErrorTypeExpectation<E>(errorType, sourceLocation: sourceLocation)
+}
+
+/// Creates an expectation that the async sequence will throw an error matching the predicate.
+/// This expectation matches errors that satisfy the provided predicate.
+/// - Parameter predicate: A closure that takes an Error and returns whether it matches.
+public func expectError(
+    where predicate: @escaping @Sendable (Error) -> Bool,
+    sourceLocation: SourceLocation = #_sourceLocation
+) -> AsyncSequenceExpectation {
+    ErrorPredicateExpectation(where: predicate, sourceLocation: sourceLocation)
+}

@@ -7,3 +7,8 @@ public protocol AsyncSequenceExpectation {
     var description: String { get }
     var sourceLocation: SourceLocation { get }
 }
+
+/// A protocol marker for error expectations
+public protocol ErrorExpectation: AsyncSequenceExpectation {
+    func matchesError(_ error: Error) -> Bool
+}
