@@ -25,17 +25,23 @@ public struct AsyncSequenceExpectationBuilder<Element> {
     }
 }
 
-// MARK: - Result Builder Functions
+// MARK: - Emit Functions
 
 /// Creates an expectation that the async sequence will emit a value matching the predicate.
 /// - Parameter predicate: A closure that takes an element and returns whether it matches.
-public func emit<Element>(where predicate: @escaping @Sendable (Element) -> Bool, sourceLocation: SourceLocation = #_sourceLocation) -> AsyncSequenceExpectation {
+public func emit<Element>(
+    where predicate: @escaping @Sendable (Element) -> Bool,
+    sourceLocation: SourceLocation = #_sourceLocation
+) -> AsyncSequenceExpectation {
     PredicateExpectation(predicate: predicate, sourceLocation: sourceLocation)
 }
 
-/// Creates an expectation that the async sequence will emit a value that equals the specified value using Equatable.
+/// Creates an expectation that the async sequence will emit a value that equals the specified value.
 /// - Parameter value: The expected value to be emitted.
-public func emit<E: Equatable>(_ value: E, sourceLocation: SourceLocation = #_sourceLocation) -> AsyncSequenceExpectation {
+public func emit<E: Equatable>(
+    _ value: E,
+    sourceLocation: SourceLocation = #_sourceLocation
+) -> AsyncSequenceExpectation {
     EquatableValueExpectation(value: value, sourceLocation: sourceLocation)
 }
 
@@ -52,4 +58,10 @@ public func skip(sourceLocation: SourceLocation = #_sourceLocation) -> AsyncSequ
 /// - Parameter count: The number of elements to skip. Must be greater than 0.
 public func skip(_ count: Int, sourceLocation: SourceLocation = #_sourceLocation) -> AsyncSequenceExpectation {
     SkipCountExpectation(count: count, sourceLocation: sourceLocation)
+}
+
+/// Creates an expectation that skips all remaining elements from the async sequence.
+/// This allows you to ignore any remaining elements and finish the test successfully.
+public func skipAll(sourceLocation: SourceLocation = #_sourceLocation) -> AsyncSequenceExpectation {
+    SkipAllExpectation(sourceLocation: sourceLocation)
 }

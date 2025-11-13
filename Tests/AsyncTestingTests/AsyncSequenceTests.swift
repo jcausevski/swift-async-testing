@@ -198,7 +198,12 @@ final class AsyncSequenceTests {
                 skip(2) // Tries to skip 2 elements but only 1 remains
             }
             #expect(Bool(false), "Expected test to throw an error")
-        } catch AsyncTestError.insufficientElementsForSkip(let skipCount, let elementsSkipped, let expectationIndex, let totalExpectations) {
+        } catch AsyncTestError.insufficientElementsForSkip(
+                let skipCount,
+                let elementsSkipped,
+                let expectationIndex,
+                let totalExpectations
+            ) {
             #expect(skipCount == 2)
             #expect(elementsSkipped == 1)
             #expect(expectationIndex == 1)
@@ -243,6 +248,81 @@ final class AsyncSequenceTests {
             #expect(Bool(false), "Expected test to throw an error for zero skip count")
         } catch AsyncTestError.invalidSkipCount(let count, _) {
             #expect(count == 0, "Expected error to contain the invalid skip count")
+        }
+    }
+
+    // MARK: - Skip All Tests
+
+    @Test("Test skip all remaining elements")
+    func testSkipAllRemainingElements() async throws {
+        let sequence = AsyncStream<Int> { continuation in
+            continuation.yield(1)
+            continuation.yield(2)
+            continuation.yield(3)
+            continuation.yield(4)
+            continuation.yield(5)
+            continuation.finish()
+        }
+
+        await sequence.test {
+            emit(1)
+            emit(2)
+            skipAll() // Skip remaining elements 3, 4, 5
+        }
+    }
+
+    @Test("Test skip all with no remaining elements")
+    func testSkipAllWithNoRemainingElements() async throws {
+        let sequence = AsyncStream<String> { continuation in
+            continuation.yield("hello")
+            continuation.yield("world")
+            continuation.finish()
+        }
+
+        await sequence.test {
+            emit("hello")
+            emit("world")
+            skipAll() // Should work even when no elements remain
+        }
+    }
+
+    @Test("Test skip all as first expectation")
+    func testSkipAllAsFirstExpectation() async throws {
+        let sequence = AsyncStream<String> { continuation in
+            continuation.yield("ignore1")
+            continuation.yield("ignore2")
+            continuation.yield("ignore3")
+            continuation.finish()
+        }
+
+        await sequence.test {
+            skipAll() // Skip all elements from the beginning
+        }
+    }
+
+    @Test("Test skip all followed by more expectations should fail")
+    func testSkipAllFollowedByMoreExpectations() async throws {
+        let sequence = AsyncStream<Int> { continuation in
+            continuation.yield(1)
+            continuation.yield(2)
+            continuation.yield(3)
+            continuation.finish()
+        }
+
+        do {
+            try await sequence.testThrowing {
+                emit(1)
+                skipAll() // This should consume all remaining elements (2, 3)
+                emit(4)   // This should fail since no elements remain
+            }
+            #expect(Bool(false), "Expected test to throw an error for expectations after skipAll")
+        } catch AsyncTestError.insufficientElements(let expected, let actual, let unprocessedExpectations, _) {
+            #expect(expected == 3)
+            #expect(actual == 2) // Only 2 expectations were processed (emit 1, skipAll)
+            #expect(unprocessedExpectations.count == 1)
+            #expect(unprocessedExpectations.first == "4")
+        } catch {
+            #expect(Bool(false), "Unexpected error type: \(error)")
         }
     }
 }
