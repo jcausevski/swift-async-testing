@@ -3,24 +3,24 @@
 import PackageDescription
 
 let package = Package(
-    name: "SwiftAsyncTest",
+    name: "swift-async-testing",
     platforms: [
         .iOS(.v18),
         .macOS(.v15)
     ],
     products: [
         .library(
-            name: "SwiftAsyncTest",
-            targets: ["SwiftAsyncTest"]
+            name: "AsyncTesting",
+            targets: ["AsyncTesting"]
         ),
     ],
     targets: [
         .target(
-            name: "SwiftAsyncTest"
+            name: "AsyncTesting"
         ),
         .testTarget(
-            name: "SwiftAsyncTestTests",
-            dependencies: ["SwiftAsyncTest"]
+            name: "AsyncTestingTests",
+            dependencies: ["AsyncTesting"]
         ),
     ]
 )

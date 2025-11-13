@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import SwiftAsyncTest
+@testable import AsyncTesting
 
 final class AsyncSequenceTests {
 
