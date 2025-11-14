@@ -6,7 +6,10 @@ public enum AsyncTestError: Error, CustomStringConvertible {
     case unexpectedElement(element: String, at: Int, sourceLocation: SourceLocation)
     case expectationMismatch(expected: String, actual: String, at: Int, sourceLocation: SourceLocation)
     case insufficientElements(expected: Int, actual: Int, unprocessedExpectations: [String], sourceLocation: SourceLocation)
-    case insufficientElementsForSkip(skipCount: Int, elementsSkipped: Int, expectationIndex: Int, totalExpectations: Int)
+    case insufficientElementsForSkip(
+        skipCount: Int, elementsSkipped: Int, expectationIndex: Int,
+        totalExpectations: Int, sourceLocation: SourceLocation
+    )
     case invalidSkipCount(count: Int, sourceLocation: SourceLocation)
     case expectedErrorButSequenceSucceeded(expectedError: String, at: Int, sourceLocation: SourceLocation)
     case errorExpectationMismatch(expectedError: String, actualError: String, at: Int, sourceLocation: SourceLocation)
@@ -19,7 +22,7 @@ public enum AsyncTestError: Error, CustomStringConvertible {
             return "Expectation at index \(index) failed. Expected: \(expected), but got: \(actual)"
         case .insufficientElements(let expected, let actual, _, _):
             return "Insufficient elements. Expected \(expected), but got \(actual)"
-        case .insufficientElementsForSkip(let skipCount, let elementsSkipped, _, _):
+        case .insufficientElementsForSkip(let skipCount, let elementsSkipped, _, _, _):
             return "Attempted to skip \(skipCount) elements, but only \(elementsSkipped) elements were available."
         case .invalidSkipCount(let count, _):
             return "Invalid skip count: \(count). Skip count must be greater than 0."

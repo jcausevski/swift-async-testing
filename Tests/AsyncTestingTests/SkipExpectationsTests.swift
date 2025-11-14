@@ -79,7 +79,8 @@ final class SkipExpectationsTests {
             let skipCount,
             let elementsSkipped,
             let expectationIndex,
-            let totalExpectations
+            let totalExpectations,
+            _
         ) {
             #expect(skipCount == 2)
             #expect(elementsSkipped == 1)

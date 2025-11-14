@@ -62,7 +62,8 @@ public final class AsyncSequenceTestContext<Element> {
                                 skipCount: skipExpectation.count,
                                 elementsSkipped: elementsSkipped,
                                 expectationIndex: expectationIndex,
-                                totalExpectations: expectations.count
+                                totalExpectations: expectations.count,
+                                sourceLocation: skipExpectation.sourceLocation
                             )
                         }
                         elementsSkipped += 1

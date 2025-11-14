@@ -62,7 +62,7 @@ extension AsyncSequence {
                     sourceLocation: sourceLocation
                 )
 
-            case .insufficientElementsForSkip(let skipCount, let elementsSkipped, let expectationIndex, let totalExpectations):
+            case .insufficientElementsForSkip(let skipCount, let elementsSkipped, let expectationIndex, let totalExpectations, let sourceLocation):
                 Issue.record(
                     """
                     Insufficient elements for skip operation
@@ -74,7 +74,8 @@ extension AsyncSequence {
                     Elements processed: \(elementsSkipped)
 
                     This error occurs when the async sequence ends before all skip operations can be completed.
-                    """
+                    """,
+                    sourceLocation: sourceLocation
                 )
 
             case .invalidSkipCount(let skipCount, let sourceLocation):
