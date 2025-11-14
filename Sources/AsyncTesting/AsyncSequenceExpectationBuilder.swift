@@ -45,6 +45,26 @@ public func emit<E: Equatable>(
     EquatableValueExpectation(value: value, sourceLocation: sourceLocation)
 }
 
+/// Creates an expectation that the async sequence will eventually emit a value that equals the specified value.
+/// This expectation will skip elements until it finds a matching value.
+/// - Parameter value: The expected value to be eventually emitted.
+public func emitEventually<E: Equatable>(
+    _ value: E,
+    sourceLocation: SourceLocation = #_sourceLocation
+) -> AsyncSequenceExpectation {
+    EquatableValueEventuallyExpectation(value: value, sourceLocation: sourceLocation)
+}
+
+/// Creates an expectation that the async sequence will eventually emit a value matching the predicate.
+/// This expectation will skip elements until it finds one that matches the predicate.
+/// - Parameter predicate: A closure that takes an element and returns whether it matches.
+public func emitEventually<Element>(
+    where predicate: @escaping @Sendable (Element) -> Bool,
+    sourceLocation: SourceLocation = #_sourceLocation
+) -> AsyncSequenceExpectation {
+    PredicateEventuallyExpectation(predicate: predicate, sourceLocation: sourceLocation)
+}
+
 // MARK: - Skip Functions
 
 /// Creates an expectation that skips one element from the async sequence.

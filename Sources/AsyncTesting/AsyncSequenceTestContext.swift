@@ -78,6 +78,30 @@ public final class AsyncSequenceTestContext<Element> {
                     }
                     expectationIndex += 1
                     break
+                } else if expectation is EventuallyExpectation {
+                    var found = false
+                    var currentElement = element
+
+                    while true {
+                        if try expectation.matches(currentElement) {
+                            found = true
+                            break
+                        }
+
+                        guard let nextElement = try await iterator.next() else {
+                            throw AsyncTestError.expectationMismatch(
+                                expected: "eventually: " + expectation.description,
+                                actual: "sequence ended without finding match",
+                                at: expectationIndex,
+                                sourceLocation: expectation.sourceLocation
+                            )
+                        }
+                        currentElement = nextElement
+                    }
+
+                    if found {
+                        expectationIndex += 1
+                    }
                 } else if try expectation.matches(element) {
                     expectationIndex += 1
                 } else {
