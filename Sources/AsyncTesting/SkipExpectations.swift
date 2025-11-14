@@ -49,3 +49,24 @@ public struct SkipAllExpectation: AsyncSequenceExpectation {
         return true
     }
 }
+
+/// An expectation that skips elements from the async sequence while they match the predicate.
+/// Elements are skipped until the predicate returns false, then the next element is matched against subsequent expectations.
+public struct PredicateSkipExpectation<Element>: AsyncSequenceExpectation {
+    public let predicate: @Sendable (Element) -> Bool
+    public let description: String
+    public let sourceLocation: SourceLocation
+
+    init(predicate: @escaping @Sendable (Element) -> Bool, sourceLocation: SourceLocation = #_sourceLocation) {
+        self.predicate = predicate
+        self.description = "skip while matching predicate"
+        self.sourceLocation = sourceLocation
+    }
+
+    public func matches(_ element: Any) throws -> Bool {
+        guard let typedElement = element as? Element else {
+            return false
+        }
+        return predicate(typedElement)
+    }
+}

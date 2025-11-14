@@ -86,6 +86,16 @@ public func skipAll(sourceLocation: SourceLocation = #_sourceLocation) -> AsyncS
     SkipAllExpectation(sourceLocation: sourceLocation)
 }
 
+/// Creates an expectation that skips elements from the async sequence while they match the predicate.
+/// Elements are skipped until the predicate returns false, then the next element is matched against subsequent expectations.
+/// - Parameter predicate: A closure that takes an element and returns whether it should be skipped.
+public func skip<Element>(
+    where predicate: @escaping @Sendable (Element) -> Bool,
+    sourceLocation: SourceLocation = #_sourceLocation
+) -> AsyncSequenceExpectation {
+    PredicateSkipExpectation(predicate: predicate, sourceLocation: sourceLocation)
+}
+
 // MARK: - Error Functions
 
 /// Creates an expectation that the async sequence will throw any error.

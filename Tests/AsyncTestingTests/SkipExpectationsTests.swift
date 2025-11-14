@@ -203,4 +203,110 @@ final class SkipExpectationsTests {
             #expect(Bool(false), "Unexpected error type: \(error)")
         }
     }
+
+    @Test("Test skip where with matching elements")
+    func testSkipWhereWithMatchingElements() async throws {
+        let sequence = AsyncStream<Int> { continuation in
+            continuation.yield(1)
+            continuation.yield(2)
+            continuation.yield(3)
+            continuation.yield(4)
+            continuation.yield(5)
+            continuation.finish()
+        }
+
+        await sequence.test {
+            skip(where: { $0 < 3 })
+            emit(3)
+            emit(4)
+            emit(5)
+        }
+    }
+
+    @Test("Test skip where followed by expectation when predicate never matches")
+    func testSkipWhereWhenPredicateNeverMatches() async throws {
+        let sequence = AsyncStream<String> { continuation in
+            continuation.yield("important1")
+            continuation.yield("important2")
+            continuation.finish()
+        }
+
+        await sequence.test {
+            skip(where: { (value: String) in value.hasPrefix("skip") })
+            emit("important1")
+            emit("important2")
+        }
+    }
+
+    @Test("Test skip where skipping all elements")
+    func testSkipWhereSkippingAllElements() async throws {
+        let sequence = AsyncStream<Int> { continuation in
+            continuation.yield(1)
+            continuation.yield(2)
+            continuation.yield(3)
+            continuation.finish()
+        }
+
+        await sequence.test {
+            skip(where: { $0 < 10 })
+        }
+    }
+
+    @Test("Test skip where combined with other skip operations")
+    func testSkipWhereCombinedWithOtherSkips() async throws {
+        let sequence = AsyncStream<String> { continuation in
+            continuation.yield("keep1")
+            continuation.yield("skip_me_1")
+            continuation.yield("skip_me_2")
+            continuation.yield("skip_single")
+            continuation.yield("keep2")
+            continuation.yield("skip_count_1")
+            continuation.yield("skip_count_2")
+            continuation.yield("keep3")
+            continuation.finish()
+        }
+
+        await sequence.test {
+            emit("keep1")
+            skip(where: { (value: String) in value.hasPrefix("skip_me") })
+            skip()
+            emit("keep2")
+            skip(2)
+            emit("keep3")
+        }
+    }
+
+    @Test("Test skip where with no elements to skip")
+    func testSkipWhereWithNoElementsToSkip() async throws {
+        let sequence = AsyncStream<Int> { continuation in
+            continuation.yield(10)
+            continuation.yield(20)
+            continuation.yield(30)
+            continuation.finish()
+        }
+
+        await sequence.test {
+            skip(where: { $0 < 5 })
+            emit(10)
+            emit(20)
+            emit(30)
+        }
+    }
+
+    @Test("Test skip where at the end of sequence")
+    func testSkipWhereAtEndOfSequence() async throws {
+        let sequence = AsyncStream<String> { continuation in
+            continuation.yield("keep1")
+            continuation.yield("keep2")
+            continuation.yield("skip1")
+            continuation.yield("skip2")
+            continuation.finish()
+        }
+
+        await sequence.test {
+            emit("keep1")
+            emit("keep2")
+            skip(where: { (value: String) in value.hasPrefix("skip") })
+        }
+    }
 }

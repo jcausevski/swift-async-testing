@@ -78,6 +78,93 @@ public final class AsyncSequenceTestContext<Element> {
                     }
                     expectationIndex += 1
                     break
+                } else if let skipWhileExpectation = expectation as? PredicateSkipExpectation<Element> {
+                    var currentElement = element
+                    var skippedElements = 0
+                    var sequenceEndedDuringSkip = false
+
+                    // Continue skipping while elements match the predicate
+                    while try skipWhileExpectation.matches(currentElement) {
+                        skippedElements += 1
+                        guard let nextElement = try await iterator.next() else {
+                            // No more elements, we're done skipping and the sequence ended
+                            expectationIndex += 1
+                            sequenceEndedDuringSkip = true
+                            break
+                        }
+                        currentElement = nextElement
+                    }
+
+                    if sequenceEndedDuringSkip {
+                        // Sequence ended while skipping, break out of main loop
+                        break
+                    }
+
+                    if skippedElements > 0 {
+                        // We skipped some elements and stopped at one that doesn't match
+                        // Process the element that made us stop skipping
+                        expectationIndex += 1
+
+                        if expectationIndex >= expectations.count {
+                            throw AsyncTestError.unexpectedElement(
+                                element: String(describing: currentElement),
+                                at: expectationIndex,
+                                sourceLocation: skipWhileExpectation.sourceLocation
+                            )
+                        }
+
+                        let nextExpectation = expectations[expectationIndex]
+                        if nextExpectation is ErrorExpectation {
+                            throw AsyncTestError.expectedErrorButSequenceSucceeded(
+                                expectedError: nextExpectation.description,
+                                at: expectationIndex,
+                                sourceLocation: nextExpectation.sourceLocation
+                            )
+                        }
+
+                        if try nextExpectation.matches(currentElement) {
+                            expectationIndex += 1
+                        } else {
+                            throw AsyncTestError.expectationMismatch(
+                                expected: nextExpectation.description,
+                                actual: String(describing: currentElement),
+                                at: expectationIndex,
+                                sourceLocation: nextExpectation.sourceLocation
+                            )
+                        }
+                    } else {
+                        // No elements were skipped, the current element should be processed
+                        // by the next expectation without advancing expectationIndex
+                        expectationIndex += 1
+
+                        if expectationIndex >= expectations.count {
+                            throw AsyncTestError.unexpectedElement(
+                                element: String(describing: element),
+                                at: expectationIndex,
+                                sourceLocation: skipWhileExpectation.sourceLocation
+                            )
+                        }
+
+                        let nextExpectation = expectations[expectationIndex]
+                        if nextExpectation is ErrorExpectation {
+                            throw AsyncTestError.expectedErrorButSequenceSucceeded(
+                                expectedError: nextExpectation.description,
+                                at: expectationIndex,
+                                sourceLocation: nextExpectation.sourceLocation
+                            )
+                        }
+
+                        if try nextExpectation.matches(element) {
+                            expectationIndex += 1
+                        } else {
+                            throw AsyncTestError.expectationMismatch(
+                                expected: nextExpectation.description,
+                                actual: String(describing: element),
+                                at: expectationIndex,
+                                sourceLocation: nextExpectation.sourceLocation
+                            )
+                        }
+                    }
                 } else if expectation is EventuallyExpectation {
                     var found = false
                     var currentElement = element
